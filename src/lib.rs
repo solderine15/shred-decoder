@@ -927,18 +927,21 @@ impl FecSet {
     /// Payload offset depends on auth type
     #[inline]
     pub fn data_payload(&self, local_idx: usize) -> Option<&[u8]> {
-        if local_idx >= self.n_data as usize { return None; }
+        // If n_data is known (from coding shreds), check bounds
+        // Otherwise allow any present shard
+        if self.n_data > 0 && local_idx >= self.n_data as usize { return None; }
+        if local_idx >= MAX_TOTAL { return None; }
         if !self.present[local_idx] { return None; }
-        
+
         let variant = self.variant?;
         let rs = &self.buffers[local_idx][..self.lengths[local_idx] as usize];
-        
+
         // Payload offset within RS region
         let off = match variant.auth_type {
             AuthType::Legacy => OFF_DATA_PAYLOAD_V2, // RS starts at 0
             AuthType::Merkle => OFF_DATA_PAYLOAD_V2 - SIG_SZ, // RS starts at 64
         };
-        
+
         if off >= rs.len() { return None; }
         Some(&rs[off..])
     }

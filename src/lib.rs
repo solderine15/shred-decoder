@@ -945,6 +945,52 @@ impl FecSet {
         if off >= rs.len() { return None; }
         Some(&rs[off..])
     }
+
+    /// Get data payload with correct size (excluding padding)
+    /// This reads the size field from the shred header to determine actual payload length
+    #[inline]
+    pub fn data_payload_sized(&self, local_idx: usize) -> Option<&[u8]> {
+        if self.n_data > 0 && local_idx >= self.n_data as usize { return None; }
+        if local_idx >= MAX_TOTAL { return None; }
+        if !self.present[local_idx] { return None; }
+
+        let variant = self.variant?;
+        let rs = &self.buffers[local_idx][..self.lengths[local_idx] as usize];
+
+        // Calculate offsets within RS region based on auth type
+        let (size_off, payload_off) = match variant.auth_type {
+            AuthType::Legacy => (OFF_DATA_SIZE, OFF_DATA_PAYLOAD_V2),
+            AuthType::Merkle => (OFF_DATA_SIZE - SIG_SZ, OFF_DATA_PAYLOAD_V2 - SIG_SZ),
+        };
+
+        if size_off + 2 > rs.len() || payload_off >= rs.len() { return None; }
+
+        // Read data_size field (2 bytes little endian)
+        // data_size is the total valid data from shred offset 0, including header
+        let data_size = u16::from_le_bytes([rs[size_off], rs[size_off + 1]]) as usize;
+
+        // Validate data_size: must be >= 88 (header size) and <= reasonable max
+        // For a valid shred, data_size should be between 88 and ~1200
+        if data_size < OFF_DATA_PAYLOAD_V2 || data_size > 1300 {
+            // Invalid data_size - this shouldn't happen for correctly FEC-recovered shreds
+            // Log a sample of invalid values to debug
+            #[cfg(debug_assertions)]
+            eprintln!("Invalid data_size: {} (off={}, rs_len={})", data_size, size_off, rs.len());
+            return None;
+        }
+
+        // payload_len = data_size - OFF_DATA_PAYLOAD_V2 (always 88)
+        // data_size includes the header, so we subtract where payload starts
+        let payload_len = data_size - OFF_DATA_PAYLOAD_V2;
+        let end = payload_off + payload_len;
+
+        if end > rs.len() {
+            // If calculated size exceeds buffer, return what we have
+            return Some(&rs[payload_off..]);
+        }
+
+        Some(&rs[payload_off..end])
+    }
 }
 
 

@@ -790,9 +790,8 @@ impl FecSet {
             if shred.block_complete() || shred.batch_complete() {
                 if local >= self.last_data_idx {
                     self.last_data_idx = local;
-                    if shred.block_complete() {
-                        self.block_complete_seen = true;
-                    }
+                    // Set flag for either block_complete or batch_complete
+                    self.block_complete_seen = true;
                 }
             }
         } else {

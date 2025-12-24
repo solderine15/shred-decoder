@@ -1,5 +1,4 @@
 #![allow(clippy::all,unused_unsafe,dead_code,unused_variables,unused_imports)]
-#![cfg_attr(target_arch = "x86_64", feature(stdarch_x86_avx512))]
 
 //! Ultra-optimized Solana shred decoder with pump.fun fast-filter
 //!

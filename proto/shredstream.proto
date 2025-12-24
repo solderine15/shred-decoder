@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package shredstream;
+
+// Service for streaming decoded shred entries
+service ShredDecoder {
+    // Subscribe to a stream of decoded entries
+    rpc SubscribeEntries(SubscribeEntriesRequest) returns (stream Entry);
+    
+    // Get current processing stats
+    rpc GetStats(GetStatsRequest) returns (StatsResponse);
+}
+
+// Request to subscribe to entries
+message SubscribeEntriesRequest {
+    // Optional: filter by specific slots
+    repeated uint64 slot_filter = 1;
+}
+
+// A decoded entry from shreds
+message Entry {
+    // The slot number this entry belongs to
+    uint64 slot = 1;
+    
+    // Serialized entries as bytes (bincode format)
+    bytes entries = 2;
+    
+    // Number of transactions in this entry batch
+    uint32 transaction_count = 3;
+    
+    // Timestamp when entry was decoded
+    int64 timestamp_ms = 4;
+}
+
+// Request for stats
+message GetStatsRequest {}
+
+// Statistics response
+message StatsResponse {
+    uint64 total_shreds_received = 1;
+    uint64 total_entries_decoded = 2;
+    uint64 total_slots_processed = 3;
+    uint64 fec_recoveries = 4;
+    uint64 current_slot = 5;
+    uint64 shreds_per_second = 6;
+}

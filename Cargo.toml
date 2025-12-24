@@ -1,0 +1,43 @@
+[package]
+name = "shred-decoder"
+version = "0.1.0"
+edition = "2021"
+description = "Ultra-optimized Solana shred decoder with SIMD RS and Lagrange interpolation"
+license = "MIT"
+
+[lib]
+name = "shred_decoder"
+crate-type = ["cdylib", "rlib", "staticlib"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false
+overflow-checks = false
+
+[profile.release.build-override]
+opt-level = 3
+
+[dependencies]
+sha2 = { version = "0.10", features = ["asm"] }
+ed25519-dalek = { version = "2.1", features = ["std"] }
+bs58 = "0.5"
+signal-hook = "0.3"
+libc = "0.2"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "rs_decode"
+harness = false
+
+[[bench]]
+name = "pump_detect"
+harness = false
+
+[features]
+default = []

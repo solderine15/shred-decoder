@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  shred-decoder:
+    build: .
+    container_name: shred-decoder
+    ports:
+      - "8002:8002/udp"  # UDP input for shreds
+      - "50051:50051"     # gRPC service
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+    networks:
+      - shred-network
+    volumes:
+      - ./logs:/app/logs  # Optional: for log persistence
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "50051"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  shred-network:
+    driver: bridge
